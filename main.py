@@ -1,6 +1,8 @@
 import sys
 import random
+
 # SESION 1 :
+
 # EJERCICIO 1 :
 def bisiesto(anyo):
     return anyo % 4 == 0 and (anyo % 400 == 0 or anyo % 100 != 0)
