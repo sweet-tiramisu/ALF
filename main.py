@@ -1,8 +1,12 @@
 import sys
 import random
+import regex as re
+
+p_tlf = re.compile(r"(\d{3}) (\d{3}) (\d{3})")
+p_nif = re.compile(r"([XYZ\d])(\d{7})((?![ÑIOU])[A-Z])")
+p_fecha = re.compile (r"(?P<anyo>(1|2)\d{3})-(?P<mes>\d{2})-(?P<dia>\d{2}) +(?P<hora>\d{2}):(?P<min>\d{2})|(?i)(?P<mes>(j(anuary|une|uly)|february|m(arch|ay)|a(pril|ugust)|september|october|november|december)) +(?P<dia>\d{2}), +(?P<anyo>\d{1,4}) +(?P<hora>\d{1,2}):(?P<min>\d{2}) AM|PM|(?P<hora>\d{2}):(?P<min>\d{2}):(?P<seg>\d{2}) +(?P<dia>\d{2})/(?P<mes>\d{2})/(?P<anyo>(1|2)\d{3})")
 
 # SESION 1 :
-
 # EJERCICIO 1 :
 def bisiesto(anyo):
     return anyo % 4 == 0 and (anyo % 400 == 0 or anyo % 100 != 0)
@@ -16,8 +20,9 @@ def verificarfecha(anyo, mes, dia):
             return 0 < dia <= 28
     elif mes in [4, 6, 9, 11]:           # Meses con 30 días
         return 0 < dia <= 30
-    else:                               # Meses con 31 días
+    elif mes in [1, 3, 5, 7, 8, 10, 12]:                               # Meses con 31 días
         return 0 < dia <= 31
+    return 0
 
 # EJERCICIO 3 :
 def verificarhora(horas,minutos,segundos):
@@ -149,6 +154,14 @@ def generar_fechas():
 
     return fecha
 
+''' Se podría implementar para simplificar cálculos
+def calculoGradosMinSeg(coordenada):
+    grados = int(abs(coordenada))
+    minutos_decimal = (abs(coordenada) - grados) * 60
+    minutos = int(minutos_decimal)
+    segundos = (minutos_decimal - minutos) * 60
+    return grados, minutos, segundos
+'''
 
 def generar_coordenadas():
     latitud = random.uniform(-90.0, 90.0)
@@ -231,16 +244,16 @@ def generar_producto():
 def generar_precio():
     return "%d%s" % (random.randint(100, 5000), '€')
 
-def generar_Formato():
+def generar_Formato(tamano):
     lista = []
     contador = 0
-    while contador < 3:
-        tlf = str(generaTelefonos())
-        nif = str(random.choice([generar_nif(), generar_nie()]))
-        fecha = str(generar_fechas())
-        coordenadas = str(generar_coordenadas())
-        producto = str(generar_producto())
-        precio = str(generar_precio())
+    while contador < tamano:
+        tlf = generaTelefonos()
+        nif = random.choice([generar_nif(), generar_nie()])
+        fecha = generar_fechas()
+        coordenadas = generar_coordenadas()
+        producto = generar_producto()
+        precio = generar_precio()
 
         linea = "%s ; %s ; %s ; %s ; %s ; %s" % (tlf,nif,fecha,coordenadas,producto,precio)
         lista.append(linea)
@@ -248,9 +261,71 @@ def generar_Formato():
 
     return lista
 
+def verifica_Telefono(texto):
+    m = p_tlf.fullmatch(texto)
+    if m:
+        return m[1] + m[2] + m[3]
+    else:
+        return None
+
+def verifica_nif(dni):
+    d = p_nif.fullmatch(dni)
+    if d:
+        if d[1] == "X" or d[1] == "Y" or d[1] == "Z":
+            nifValido(dni)
+        return d[0]
+    else:
+        return None
+
+def verifica_fecha(fecha):
+    f = p_fecha.fullmatch(fecha)
+    if f["mes"] == r"(?i)january":
+         mes = 1
+    elif f["mes"] == r"(?i)february":
+       mes = 2
+    elif f["mes"] == r"(?i)march":
+        mes = 3
+    elif f["mes"] == r"(?i)april":
+         mes = 4
+    elif f["mes"] == r"(?i)may":
+         mes = 5
+    elif f["mes"] == r"(?i)june":
+        mes = 6
+    elif f["mes"] == r"(?i)july":
+        mes = 7
+    elif f["mes"] == r"(?i)august":
+        mes = 8
+    elif f["mes"] == r"(?i)september":
+        mes = 9
+    elif f["mes"] == r"(?i)october":
+        mes = 10
+    elif f["mes"] == r"(?i)november":
+        mes = 11
+    elif f["mes"] == r"(?i)december":
+        mes = 12
+    segundos = 0
+
+    if f and verificarhora(f["hora"],f["minutos"],segundos) and verificarfecha(f["anyo"],mes,f["dia"]):
+        return f["dia"] + mes + f["anyo"] + f["hora"] + f["minutos"] + segundos
+    else:
+        return None
+
+def verifica_coord(coordenadas):
+    c = p_coord.fullmatch(coordenadas)
+    if c:
+        return c[0]
+    else:
+        return None
+
 # EJERCICIO 5 :
 def main():
+    if verifica_Telefono("535 434 343") and verifica_fecha("") and verifica_nif(""):
+        print("Formato correcto")
+    else:
+        print("Formato incorrecto")
     #  EJERCICIO SESION 1 :
+    '''
+
     contador = 1
     while contador <= 3:                # El número original es 100, se acorta para visualizar las otras llamadas.
         a = random.randint(0, 2024)
@@ -269,6 +344,7 @@ def main():
         print(f"{h}:{min}:{s}  {d}/{m}/{a}\n")
         # PROFESOR : Debemos retornar una lista con estos datos, no hay que imprimirlos.
         contador += 1
+    
 
     # EJERCICIO SESION 2:
     dni = sys.argv[1]  # X2948453Z
@@ -287,10 +363,12 @@ def main():
     print(generar_coordenadas())
     print(generar_producto())
     print(generar_precio())
-    lista = generar_Formato()
+    tam = 3
+    lista = generar_Formato(tam)
 
     for i in lista:
         print(i, end = "\n")
+    '''
 
 
 main()
