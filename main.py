@@ -4,7 +4,8 @@ import regex as re
 
 p_tlf = re.compile(r"(\d{3}) (\d{3}) (\d{3})")
 p_nif = re.compile(r"([XYZ\d])(\d{7})((?![ÑIOU])[A-Z])")
-p_fecha = re.compile (r"(?P<anyo>(1|2)\d{3})-(?P<mes>\d{2})-(?P<dia>\d{2}) +(?P<hora>\d{2}):(?P<min>\d{2})|(?i)(?P<mes>(j(anuary|une|uly)|february|m(arch|ay)|a(pril|ugust)|september|october|november|december)) +(?P<dia>\d{2}), +(?P<anyo>\d{1,4}) +(?P<hora>\d{1,2}):(?P<min>\d{2}) AM|PM|(?P<hora>\d{2}):(?P<min>\d{2}):(?P<seg>\d{2}) +(?P<dia>\d{2})/(?P<mes>\d{2})/(?P<anyo>(1|2)\d{3})")
+p_fecha = re.compile (r"((?P<anyo>\d{4})-(?P<mes>\d{2})-(?P<dia>\d{2}) +(?P<hora>\d{2}):(?P<min>\d{2}))|((?i)(?P<mes>(j(anuary|une|uly)|february|m(arch|ay)|a(pril|ugust)|september|october|november|december)) +(?P<dia>\d{2}), +(?P<anyo>\d{1,4}) +(?P<hora>\d{1,2}):(?P<min>\d{2}) AM|PM)|((?P<hora>\d{2}):(?P<min>\d{2}):(?P<seg>\d{2}) +(?P<dia>\d{2})/(?P<mes>\d{2})/(?P<anyo>\d{4}))")
+p_coord = re.compile(r"((\+{0,1}|-)(?P<grados1>\d{1,2}\.\d{1,}) *, *(\+{0,1}|-)(?P<grados2>\d{1,3}\.\d{1,}))|((?P<grados1>\d{1,2})º *(?P<minutos1>\d{1,2})' *(?P<segundos1>\d{1,2}.\d{4})\" *[NS] *, *(?P<grados2>\d{1,2,3})º *(?P<minutos2>\d{1,2})' *(?P<segundos2>\d{1,2}.\d{4})\" *[EW])|((?P<grados1>(\d{3}))(?P<minutos1>\d{2})(?P<segundos1>\d{2}.\d{4})[NS](?P<grados2>\d{3})(?P<minutos2>\d{2})(?P<segundos2>\d{2}.\d{4})[EW])")
 
 # SESION 1 :
 # EJERCICIO 1 :
@@ -63,6 +64,9 @@ def nifValido(dni):
 
     return dni[-1] == letraDNI(numero)
 
+def coordenadaValida(grados1, minutos1, segundos1, grados2, minutos2, segundos2):
+    return grados1 >= 0 and grados1 < 90 and minutos1 >= 0 and minutos1 < 60 and segundos1 >= 0 and segundos1 < 60 and grados2 >= 0 and grados2 < 180 and minutos2 >= 0 and minutos2 < 60 and segundos2 >= 0 and segundos2 < 60
+
 
  # EJERCICIO 3 :
 def generarListaDNI(tamano):
@@ -98,6 +102,7 @@ def generar_nie():
     letras = 'TRWAGMYFPDXBNJZSQVHLCKE'
     numero = random.randint(0, 999999)
     prefijo = random.choice(['X', 'Y', 'Z'])
+    numero_final = 0
 
     if prefijo == 'X':
         numero_final = int("0" + str(numero))
@@ -108,9 +113,6 @@ def generar_nie():
 
     letra = letras[numero_final % 23]
     return "%s%07d%s" % (prefijo, numero_final, letra)
-
-def bisiesto(anyo):
-    return anyo % 4 == 0 and (anyo % 400 == 0 or anyo % 100 != 0)
 
 def generar_fechas():
 
@@ -271,7 +273,7 @@ def verifica_Telefono(texto):
 def verifica_nif(dni):
     d = p_nif.fullmatch(dni)
     if d:
-        if d[1] == "X" or d[1] == "Y" or d[1] == "Z":
+        if d[1] in ["X","Y","Z"]:
             nifValido(dni)
         return d[0]
     else:
@@ -279,50 +281,80 @@ def verifica_nif(dni):
 
 def verifica_fecha(fecha):
     f = p_fecha.fullmatch(fecha)
-    if f["mes"] == r"(?i)january":
-         mes = 1
-    elif f["mes"] == r"(?i)february":
-       mes = 2
-    elif f["mes"] == r"(?i)march":
-        mes = 3
-    elif f["mes"] == r"(?i)april":
-         mes = 4
-    elif f["mes"] == r"(?i)may":
-         mes = 5
-    elif f["mes"] == r"(?i)june":
-        mes = 6
-    elif f["mes"] == r"(?i)july":
-        mes = 7
-    elif f["mes"] == r"(?i)august":
-        mes = 8
-    elif f["mes"] == r"(?i)september":
-        mes = 9
-    elif f["mes"] == r"(?i)october":
-        mes = 10
-    elif f["mes"] == r"(?i)november":
-        mes = 11
-    elif f["mes"] == r"(?i)december":
-        mes = 12
-    segundos = 0
 
-    if f and verificarhora(f["hora"],f["minutos"],segundos) and verificarfecha(f["anyo"],mes,f["dia"]):
-        return f["dia"] + mes + f["anyo"] + f["hora"] + f["minutos"] + segundos
+    if re.compile(r"(?i)january").fullmatch(f["mes"]):
+        mes = 1
+    elif re.compile(r"(?i)february").fullmatch(f["mes"]):
+        mes = 2
+    elif re.compile(r"(?i)march").fullmatch(f["mes"]):
+        mes = 3
+    elif re.compile(r"(?i)april").fullmatch(f["mes"]):
+        mes = 4
+    elif re.compile(r"(?i)may").fullmatch(f["mes"]):
+        mes = 5
+    elif re.compile(r"(?i)june").fullmatch(f["mes"]):
+        mes = 6
+    elif re.compile(r"(?i)july").fullmatch(f["mes"]):
+        mes = 7
+    elif re.compile(r"(?i)august").fullmatch(f["mes"]):
+        mes = 8
+    elif re.compile(r"(?i)september").fullmatch(f["mes"]):
+        mes = 9
+    elif re.compile(r"(?i)october").fullmatch(f["mes"]):
+        mes = 10
+    elif re.compile(r"(?i)november").fullmatch(f["mes"]):
+        mes = 11
+    elif re.compile(r"(?i)december").fullmatch(f["mes"]):
+        mes = 12
+    else:
+        mes = int(f["mes"])
+
+    if f["seg"]:
+        seg = f["seg"]
+    else:
+        seg = 0
+
+    if f and verificarhora(int(f["hora"]), int(f["min"]), seg) and verificarfecha(int(f["anyo"]), mes, int(f["dia"])):
+        return f["dia"] + str(mes) + f["anyo"] + f["hora"] + f["min"] + str(seg)
     else:
         return None
+
 
 def verifica_coord(coordenadas):
     c = p_coord.fullmatch(coordenadas)
-    if c:
-        return c[0]
+
+    if c["minutos1"]:
+        minutos1 = float(c["minutos1"])
+    else:
+        minutos1 = 0
+
+    if c["minutos2"]:
+        minutos2 = float(c["minutos2"])
+    else:
+        minutos2 = 0
+
+    if c["segundos1"]:
+        segundos1 = float(c["segundos1"])
+    else:
+        segundos1 = 0
+
+    if c["segundos2"]:
+        segundos2 = float(c["segundos2"])
+    else:
+        segundos2 = 0
+
+
+    if c and coordenadaValida(float(c["grados1"]), minutos1, segundos1, float(c["grados2"]), minutos2, segundos2):
+        return c["grados1"] + str(minutos1) + str(segundos1) + c["grados2"] + str(minutos2) + str(segundos2)
     else:
         return None
-
 # EJERCICIO 5 :
 def main():
-    if verifica_Telefono("535 434 343") and verifica_fecha("") and verifica_nif(""):
+    if verifica_Telefono("535 434 343") and verifica_fecha("AUgust 13, 2020 8:15 AM") and verifica_nif("X4858856B") and verifica_coord("0250300.0000S0150722.8000E"):
         print("Formato correcto")
     else:
-        print("Formato incorrecto")
+         print("Formato incorrecto")
+
     #  EJERCICIO SESION 1 :
     '''
 
