@@ -4,8 +4,11 @@ import regex as re
 
 p_tlf = re.compile(r"(\d{3}) (\d{3}) (\d{3})")
 p_nif = re.compile(r"([XYZ\d])(\d{7})((?![ÑIOU])[A-Z])")
-p_fecha = re.compile (r"((?P<anyo>\d{4})-(?P<mes>\d{2})-(?P<dia>\d{2}) +(?P<hora>\d{2}):(?P<min>\d{2}))|((?i)(?P<mes>(j(anuary|une|uly)|february|m(arch|ay)|a(pril|ugust)|september|october|november|december)) +(?P<dia>\d{2}), +(?P<anyo>\d{1,4}) +(?P<hora>\d{1,2}):(?P<min>\d{2}) AM|PM)|((?P<hora>\d{2}):(?P<min>\d{2}):(?P<seg>\d{2}) +(?P<dia>\d{2})/(?P<mes>\d{2})/(?P<anyo>\d{4}))")
-p_coord = re.compile(r"((\+{0,1}|-)(?P<grados1>\d{1,2}\.\d{1,}) *, *(\+{0,1}|-)(?P<grados2>\d{1,3}\.\d{1,}))|((?P<grados1>\d{1,2})º *(?P<minutos1>\d{1,2})' *(?P<segundos1>\d{1,2}.\d{4})\" *[NS] *, *(?P<grados2>\d{1,2,3})º *(?P<minutos2>\d{1,2})' *(?P<segundos2>\d{1,2}.\d{4})\" *[EW])|((?P<grados1>(\d{3}))(?P<minutos1>\d{2})(?P<segundos1>\d{2}.\d{4})[NS](?P<grados2>\d{3})(?P<minutos2>\d{2})(?P<segundos2>\d{2}.\d{4})[EW])")
+p_fecha = re.compile(r"((?P<anyo>\d{4})-(?P<mes>\d{2})-(?P<dia>\d{2}) +(?P<hora>\d{2}):(?P<min>\d{2}))|((?i)(?P<mes>(j(anuary|une|uly)|february|m(arch|ay)|a(pril|ugust)|september|october|november|december)) +(?P<dia>\d{2}), +(?P<anyo>\d{1,4}) +(?P<hora>\d{1,2}):(?P<min>\d{2}) (?P<letras>AM|PM))|((?P<hora>\d{2}):(?P<min>\d{2}):(?P<seg>\d{2}) +(?P<dia>\d{2})/(?P<mes>\d{2})/(?P<anyo>\d{4}))")
+p_coord = re.compile(r"((\+{0,1}|-)(?P<grados1>\d{1,2}\.\d{1,}) *, *(\+{0,1}|-)(?P<grados2>\d{1,3}\.\d{1,}))|((?P<grados1>\d{1,2})º *(?P<minutos1>\d{1,2})' *(?P<segundos1>\d{1,2}.\d{4})\" *(?P<letra1>[NS]) *, *(?P<grados2>\d{1,2,3})º *(?P<minutos2>\d{1,2})' *(?P<segundos2>\d{1,2}.\d{4})\" *(?P<letra2>[EW]))|((?P<grados1>(\d{3}))(?P<minutos1>\d{2})(?P<segundos1>\d{2}.\d{4})(?P<letra1>[NS])(?P<grados2>\d{3})(?P<minutos2>\d{2})(?P<segundos2>\d{2}.\d{4})(?P<letra2>[EW]))")
+d_mes = {"january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6, "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12}
+d_numMes = {"1": "January", "2": "February", "3": "March", "4": "April", "5": "May", "6": "June", "7": "July", "8": "August", "9": "September", "10": "October", "11": "November", "12": "December"}
+
 
 # SESION 1 :
 # EJERCICIO 1 :
@@ -64,9 +67,9 @@ def nifValido(dni):
 
     return dni[-1] == letraDNI(numero)
 
-def coordenadaValida(grados1, minutos1, segundos1, grados2, minutos2, segundos2):
-    return grados1 >= 0 and grados1 < 90 and minutos1 >= 0 and minutos1 < 60 and segundos1 >= 0 and segundos1 < 60 and grados2 >= 0 and grados2 < 180 and minutos2 >= 0 and minutos2 < 60 and segundos2 >= 0 and segundos2 < 60
 
+def coordenadaValida(grados1, minutos1, segundos1, grados2, minutos2, segundos2):
+    return abs(grados1) >= 0 and abs(grados1) < 90 and minutos1 >= 0 and minutos1 < 60 and segundos1 >= 0 and segundos1 < 60 and abs(grados2) >= 0 and abs(grados2) < 180 and minutos2 >= 0 and minutos2 < 60 and segundos2 >= 0 and segundos2 < 60
 
  # EJERCICIO 3 :
 def generarListaDNI(tamano):
@@ -266,94 +269,124 @@ def generar_Formato(tamano):
 def verifica_Telefono(texto):
     m = p_tlf.fullmatch(texto)
     if m:
-        return m[1] + m[2] + m[3]
+        return {"Telefono": m[0]}
     else:
         return None
 
 def verifica_nif(dni):
     d = p_nif.fullmatch(dni)
     if d:
-        if d[1] in ["X","Y","Z"]:
-            nifValido(dni)
-        return d[0]
+        if d[1] in ["X","Y","Z"] and nifValido(dni):
+            return {"NIF": d[0]}
+        else:
+            return None
     else:
         return None
 
 def verifica_fecha(fecha):
     f = p_fecha.fullmatch(fecha)
+    if f:
+        if not f["mes"].isnumeric():
+            m = f["mes"].lower()
+            mes = d_mes[m]
+        else:
+            mes = int(f["mes"])
 
-    if re.compile(r"(?i)january").fullmatch(f["mes"]):
-        mes = 1
-    elif re.compile(r"(?i)february").fullmatch(f["mes"]):
-        mes = 2
-    elif re.compile(r"(?i)march").fullmatch(f["mes"]):
-        mes = 3
-    elif re.compile(r"(?i)april").fullmatch(f["mes"]):
-        mes = 4
-    elif re.compile(r"(?i)may").fullmatch(f["mes"]):
-        mes = 5
-    elif re.compile(r"(?i)june").fullmatch(f["mes"]):
-        mes = 6
-    elif re.compile(r"(?i)july").fullmatch(f["mes"]):
-        mes = 7
-    elif re.compile(r"(?i)august").fullmatch(f["mes"]):
-        mes = 8
-    elif re.compile(r"(?i)september").fullmatch(f["mes"]):
-        mes = 9
-    elif re.compile(r"(?i)october").fullmatch(f["mes"]):
-        mes = 10
-    elif re.compile(r"(?i)november").fullmatch(f["mes"]):
-        mes = 11
-    elif re.compile(r"(?i)december").fullmatch(f["mes"]):
-        mes = 12
-    else:
-        mes = int(f["mes"])
+        if f["seg"]:
+            seg = f["seg"]
+        else:
+            seg = "00"
 
-    if f["seg"]:
-        seg = f["seg"]
-    else:
-        seg = 0
-
-    if f and verificarhora(int(f["hora"]), int(f["min"]), seg) and verificarfecha(int(f["anyo"]), mes, int(f["dia"])):
-        return f["dia"] + str(mes) + f["anyo"] + f["hora"] + f["min"] + str(seg)
+        if verificarhora(int(f["hora"]), int(f["min"]), int(seg)) and verificarfecha(int(f["anyo"]), mes, int(f["dia"])):
+            return {
+                "dia": f["dia"],
+                "mes": str(mes),
+                "año": f["anyo"],
+                "hora": f["hora"],
+                "min": f["min"],
+                "seg": str(seg),
+                "letras": f["letras"]
+            }
+        else:
+            return None
     else:
         return None
 
 
 def verifica_coord(coordenadas):
     c = p_coord.fullmatch(coordenadas)
+    if c:
+        if c["minutos1"]:
+            minutos1 = c["minutos1"]
+        else:
+            minutos1 = 0
 
-    if c["minutos1"]:
-        minutos1 = float(c["minutos1"])
-    else:
-        minutos1 = 0
+        if c["minutos2"]:
+            minutos2 = c["minutos2"]
+        else:
+            minutos2 = 0
 
-    if c["minutos2"]:
-        minutos2 = float(c["minutos2"])
-    else:
-        minutos2 = 0
+        if c["segundos1"]:
+            segundos1 = c["segundos1"]
+        else:
+            segundos1 = 0
 
-    if c["segundos1"]:
-        segundos1 = float(c["segundos1"])
-    else:
-        segundos1 = 0
+        if c["segundos2"]:
+            segundos2 = c["segundos2"]
+        else:
+            segundos2 = 0
 
-    if c["segundos2"]:
-        segundos2 = float(c["segundos2"])
-    else:
-        segundos2 = 0
-
-
-    if c and coordenadaValida(float(c["grados1"]), minutos1, segundos1, float(c["grados2"]), minutos2, segundos2):
-        return c["grados1"] + str(minutos1) + str(segundos1) + c["grados2"] + str(minutos2) + str(segundos2)
+        if coordenadaValida(float(c["grados1"]), float(minutos1), float(segundos1), float(c["grados2"]), float(minutos2), float(segundos2)):
+            return {
+                "grados1": c["grados1"],
+                "minutos1": str(minutos1),
+                "segundos1": str(segundos1),
+                "grados2": c["grados2"],
+                "minutos2": str(minutos2),
+                "segundos2": str(segundos2),
+                "letra1": c["letra1"],
+                "letra2": c["letra2"]
+            }
+        else:
+            return None
     else:
         return None
+
+
+def escribirDiccionarios(telefono, fecha, nif, coord, formatoFecha, formatoCoordenadas):
+        print(telefono["Telefono"] + ";" + nif["NIF"] + ";", end='')
+        if formatoFecha == 1:
+            print(fecha["año"] + "-" + fecha["mes"] + "-" + fecha["dia"] + " " + fecha["hora"] + ":" + fecha[
+                "min"] + ";", end='')
+        elif formatoFecha == 2:
+            print(d_numMes.get(int(fecha["mes"])) + " " + fecha["dia"] + ", " + fecha["año"] + " " + fecha[
+                "hora"] + ":" + fecha["min"] + " " + fecha["letras"] + ";", end='')
+        else:
+            print(fecha["hora"] + ":" + fecha["min"] + ":" + fecha["seg"] + " " + fecha["dia"] + "/" + fecha[
+                "mes"] + "/" + fecha["año"] + ";", end='')
+
+        if formatoCoordenadas == 1:
+            print(coord["grados1"] + ", " + coord["grados2"])
+        elif formatoCoordenadas == 2:
+            print(coord["grados1"] + "Âº " + coord["minutos1"] + "' " + coord["segundos1"] + '"' + coord[
+                "letra1"] + ", " + coord["grados2"] + "º " + coord["minutos2"] + "' " + coord["segundos2"] + '"' +
+                  coord["letra2"])
+        else:
+            print(
+                coord["grados1"] + coord["minutos1"] + coord["segundos1"] + coord["letra1"] + coord["grados2"] + coord[
+                    "minutos2"] + coord["segundos2"] + coord["letra2"])
+
+
 # EJERCICIO 5 :
 def main():
-    if verifica_Telefono("535 434 343") and verifica_fecha("AUgust 13, 2020 8:15 AM") and verifica_nif("X4858856B") and verifica_coord("0250300.0000S0150722.8000E"):
-        print("Formato correcto")
+    telefono = verifica_Telefono("535 434 343")
+    fecha = verifica_fecha("08:15:00 06/08/1945")
+    NIF = verifica_nif("X4858856Z")
+    coord = verifica_coord("0250300.0000S0150722.8000E")
+    if telefono and fecha and NIF and coord:
+        escribirDiccionarios(telefono, fecha, NIF, coord, 2, 2)
     else:
-         print("Formato incorrecto")
+        print("Formato incorrecto")
 
     #  EJERCICIO SESION 1 :
     '''
