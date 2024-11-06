@@ -368,7 +368,7 @@ def escribirDiccionarios(telefono, fecha, nif, coord, formatoFecha, formatoCoord
         if formatoCoordenadas == 1:
             print(coord["grados1"] + ", " + coord["grados2"])
         elif formatoCoordenadas == 2:
-            print(coord["grados1"] + "Âº " + coord["minutos1"] + "' " + coord["segundos1"] + '"' + coord[
+            print(coord["grados1"] + "º " + coord["minutos1"] + "' " + coord["segundos1"] + '"' + coord[
                 "letra1"] + ", " + coord["grados2"] + "º " + coord["minutos2"] + "' " + coord["segundos2"] + '"' +
                   coord["letra2"])
         else:
