@@ -1,4 +1,4 @@
-import sys
+#import sys
 import random
 import regex as re
 import math
@@ -10,7 +10,7 @@ p_fecha = re.compile(r"^((?P<anyo>\d{4})-(?P<mes>\d{2})-(?P<dia>\d{2}) +(?P<hora
 p_coord = re.compile(
     r"^((?P<grados1>(\+{0,1}|-)\d{1,2}\.\d{1,}) *, *(?P<grados2>(\+{0,1}|-)\d{1,3}\.\d{1,}))|((?P<grados1>\d{1,2})º *(?P<minutos1>\d{1,2})' *(?P<segundos1>\d{1,2}\.\d{4})\" *(?P<letra1>[NS]) *, *(?P<grados2>\d{1,3})º *(?P<minutos2>\d{1,2})' *(?P<segundos2>\d{1,2}\.\d{4})\" *(?P<letra2>[EW]))|((?P<grados1>(\d{3}))(?P<minutos1>\d{2})(?P<segundos1>\d{2}.\d{4})(?P<letra1>[NS])(?P<grados2>\d{3})(?P<minutos2>\d{2})(?P<segundos2>\d{2}.\d{4})(?P<letra2>[EW]))$")
 
-p_precio = re.compile(r"^\d+(\.\d{2}){0,1}€$")
+p_precio = re.compile(r"^\d+(\.\d+){0,1}€$")
 
 p_linea = re.compile(r"^(.+);(.+);(.+);(.+);(.+);(.+)$")
 
@@ -175,11 +175,14 @@ def generar_precio():
     if isinstance(precio, int):
         return "%d%s" % (precio, "€")
     else:
-        return "%.2f%s" % (precio, "€")
+        return "%f%s" % (precio, "€")
 
 def generar_lista(tamano):
     lista = []
     contador = 0
+
+    archivo = open('salida.csv','w', encoding = 'utf8')
+
     while contador < tamano:
         tlf = generar_telefonos()
         nif = random.choice([generar_nif(), generar_nie()])
@@ -187,8 +190,8 @@ def generar_lista(tamano):
         coordenadas = generar_coordenadas()
         producto = generar_producto()
         precio = generar_precio()
-        linea = "%s;%s;%s;%s;%s;%s" % (tlf,nif,fecha,coordenadas,producto,precio)
-        lista.append(linea)
+        linea = "%s;%s;%s;%s;%s;%s\n" % (tlf,nif,fecha,coordenadas,producto,precio)
+        archivo.write(linea)
         contador += 1
     return lista
 
@@ -229,7 +232,8 @@ def verificar_fecha(fecha):
                 "hora": f["hora"],
                 "min": f["min"],
                 "seg": seg,
-                "letras": f["letras"]
+                "letras": f["letras"],
+                "original" : f[0]
             }
         else:
             return None
@@ -254,7 +258,8 @@ def verificar_coord(coordenadas):
                 "grados2": c["grados2"],
                 "minutos2": str(minutos2),
                 "segundos2": str(segundos2),
-                "letra2": c["letra2"]
+                "letra2": c["letra2"],
+                "original" : c[0]
             }
         else:
             return None
@@ -353,19 +358,22 @@ def mostrar_coord(diccionario,formato_coordenadas):
     if formato_coordenadas == 1:
         grados_latitud = coordenadas_a_grados(float(coord["grados1"]), float(coord["minutos1"]), float(coord["segundos1"]), coord["letra1"])
         grados_longitud = coordenadas_a_grados(float(coord["grados2"]), float(coord["minutos2"]), float(coord["segundos2"]), coord["letra2"])
-        return (str(grados_latitud) + ", " + str(grados_longitud))
+        return '%f, %f' % (grados_latitud, grados_longitud)
     elif formato_coordenadas == 2:
         if coord["letra1"] is None:
             coord = grados_a_coordenadas(float(coord["grados1"]), float(coord["grados2"]))
-        return ('%02dº %d\' %06.4f\" %s, %02dº %d\' %06.4f\" %s' %(float(coord["grados1"]),int(coord["minutos1"]),float(coord["segundos1"]),coord["letra1"],int(coord["grados2"]),int(coord["minutos2"]),float(coord["segundos2"]),coord["letra2"]))
+        return '%02dº %d\' %06.4f\" %s, %02dº %d\' %06.4f\" %s' % (int(coord["grados1"]), int(coord["minutos1"]), float(coord["segundos1"]), coord["letra1"], int(coord["grados2"]), int(coord["minutos2"]), float(coord["segundos2"]), coord["letra2"])
     else:
         if coord["letra1"] is None:
             coord = grados_a_coordenadas(float(coord["grados1"]), float(coord["grados2"]))
-        return ('%03d%02d%07.4f%s%03d%02d%07.4f%s' %(int(coord["grados1"]),int(coord["minutos1"]),float(coord["segundos1"]),str(coord["letra1"]),int(coord["grados2"]),int(coord["minutos2"]),float(coord["segundos2"]),str(coord["letra2"])))
+        return '%03d%02d%07.4f%s%03d%02d%07.4f%s' % (int(coord["grados1"]), int(coord["minutos1"]), float(coord["segundos1"]), str(coord["letra1"]), int(coord["grados2"]), int(coord["minutos2"]), float(coord["segundos2"]), str(coord["letra2"]))
 
 
-def escribir_diccionarios(diccionario, formato_fecha, formato_coordenadas):
+def escribir_diccionarios_normalizar(diccionario, formato_fecha, formato_coordenadas):
     print('%s;%s;%s;%s;%s;%s' %(mostrar_telefono(diccionario),mostrar_nif(diccionario),mostrar_fecha(diccionario,formato_fecha),mostrar_coord(diccionario,formato_coordenadas),diccionario["Producto"],diccionario["Precio"]))
+
+def escribir_diccionarios(diccionario):
+    print('%s;%s;%s;%s;%s;%s' % (mostrar_telefono(diccionario), mostrar_nif(diccionario), diccionario["Fecha"]["original"],diccionario["Coordenadas"]["original"], diccionario["Producto"], diccionario["Precio"]))
 
 def verificar_formato(linea):
     f = p_linea.fullmatch(linea)
@@ -387,14 +395,14 @@ def verificar_formato(linea):
             "Producto": producto,
             "Precio": precio
         }
-
+'''
 def normalizar(fichero):
     try:
         archivo = open(fichero, 'r+', encoding = "utf8")    # Para que detecte el símbolo del euro
         for linea in archivo:
             diccionario = verificar_formato(linea.strip())
             if diccionario:
-              escribir_diccionarios(diccionario, 1, 3)
+              escribir_diccionarios_normalizar(diccionario, 1, 1)
         archivo.close()
     except FileNotFoundError:
         print("ERROR: El archivo no se ha encontrado")
@@ -403,16 +411,20 @@ def normalizar(fichero):
 def filtrar_telefono(fichero, telefono):
     try:
         archivo = open(fichero, 'r+', encoding="utf8")
-        #resultado = telefono[:3] + ' ' + telefono[3:6] + ' ' + telefono[6:]     # Separamos el numero en 3 tuplas
-        telefono = verificar_telefono(telefono)
+        telefono = verificar_telefono(telefono).replace(" ", "")
 
         if telefono:
             for linea in archivo:
                 diccionario = verificar_formato(linea.strip())
                 if diccionario:
-                    #tlf = diccionario["Telefono"].replace(" ", "")
-                    if diccionario["Telefono"] == telefono:
-                        escribir_diccionarios(diccionario, 1, 3)    # ¿Se normalizarían o mantendrían su formato original?
+                    tlf = diccionario["Telefono"].replace(" ", "")
+                    if tlf[0:3] == "+34" and tlf[3:]==telefono:
+                        escribir_diccionarios(diccionario)
+                    if telefono[0:3] == "+34" and telefono[3:]==tlf:
+                        escribir_diccionarios(diccionario)
+                    if tlf == telefono:
+                        escribir_diccionarios(diccionario)    # ¿Se normalizarían o mantendrían su formato original?
+
         else:
             print('Uso: Python %s -sphone <telefono> <fichero>' % sys.argv[0], file=sys.stderr)
         archivo.close()
@@ -428,7 +440,7 @@ def filtrar_nif(fichero, nif):
                 diccionario = verificar_formato(linea.strip())
                 if diccionario:
                     if diccionario["Nif"] == nif:
-                        escribir_diccionarios(diccionario, 1, 3)
+                        escribir_diccionarios(diccionario)
         else:
             print('Uso: Python %s -snif <NIF> <fichero>' % sys.argv[0], file=sys.stderr)
         archivo.close()
@@ -451,7 +463,7 @@ def filtrar_fechas(fichero, fecha1, fecha2):
                                     fecha["seg"]) == -1 and comparar_fechas(fecha["año"], fecha["mes"], fecha["dia"],
                                     fecha["hora"], fecha["min"], fecha["seg"], fin["año"], fin["mes"], fin["dia"],
                                     fin["hora"], fin["min"], fin["seg"]) == -1:
-                        escribir_diccionarios(diccionario, 1, 3)
+                        escribir_diccionarios(diccionario)
         else:
             print('Uso: Python %s -stime <desde> <hasta> <fichero>' % sys.argv[0], file=sys.stderr)
         archivo.close()
@@ -475,39 +487,26 @@ def filtrar_coordenadas(fichero, coordenada, distancia):
     try:
         archivo = open(fichero, 'r', encoding = 'utf8')
         coord1 = verificar_coord(coordenada)
-        if coord1 and distancia.isnumeric():
+        if coord1 and distancia.replace(".", "", 1).isnumeric():
             for linea in archivo:
                 diccionario = verificar_formato(linea[:-1])
                 if diccionario:
                     coord2 = diccionario["Coordenadas"]
                     if distancia_coordenadas(coord1, coord2) < float(distancia):
-                        escribir_diccionarios(diccionario, 1, 3)
+                        escribir_diccionarios(diccionario)
         else:
             print('Uso: Python %s -slocation <desde> <hasta> <fichero>' % sys.argv[0], file=sys.stderr)
         archivo.close()
     except FileNotFoundError:
         print("ERROR: El archivo no se ha encontrado")
-
+'''
 
 def main():
-    """
-    diccionario = {
-        "Telefono": "666 777 999",
-        "Nif": "12345678Z",
-        "Fecha": "{'dia': '20', 'mes': '05', 'año': '2000', 'hora': '10', 'min': '30', 'seg': '00', 'letras': 'pm'}",
-        "Coordenadas": "30.0, -40.5",
-        "Producto": "Ordenador",
-        "Precio": "2300€"
-    }
+    generar_lista(5)
 
-    print(mostrar_fecha(diccionario,2))
-    print(verificar_formato("566 677 899 ; 87654321X ; May 20, 2000 10:30 pm ; 30º 0' 0.0000\" N, 40º 30' 0.0000\" W ; Auriculares ; 600€"))
-    #normalizar("normaliza")
-    #escribir_diccionarios(diccionario,2,3)
-    """
+    '''
     if sys.argv[1] == "-n":
        if len(sys.argv) != 4:
-           print(len(sys.argv))
            normalizar(sys.argv[2])
        else:
            print('Uso: Python %s -n <fichero>' % sys.argv[0], file=sys.stderr)
@@ -533,6 +532,7 @@ def main():
             print('Uso: Python %s -slocation <desde> <hasta> <fichero>' % sys.argv[0], file=sys.stderr)
     else:
         print('Uso: Python %s [-n|-sphone|-snif|-stime|-slocation] [argumentos]' % sys.argv[0], file=sys.stderr)
+    '''
 
 main()
 
