@@ -2,32 +2,32 @@ import sys
 import regex as re
 import math
 
-# SESIONES 4,5,6:
-p_tlf = re.compile(r"^((\d{3}) (\d{3}) (\d{3}))|(\+\d (\d ?){9,14})|(\+\d{2} (\d ?){8,13}|\+\d{3} (\d ?){7,12})$")
+# Expresiones regulares
+p_tlf = re.compile(r"^((\d{3}) (\d{3}) (\d{3}))|(\+\d (\d ?){9,14})|(\+\d{2} (\d ?){8,13}|\+\d{3} (\d ?){7,12})|(\+\d{11,15})$")
 p_nif = re.compile(r"^([XYZ\d])(\d{7})((?![ÑIOU])[A-Z])$")
-p_fecha = re.compile(r"^((?P<anyo>\d{4})-(?P<mes>\d{2})-(?P<dia>\d{2}) +(?P<hora>\d{2}):(?P<min>\d{2}))|((?i)("
-                     r"?P<mes>(j(anuary|une|uly)|february|m(arch|ay)|a("
-                     r"pril|ugust)|september|october|november|december)) +(?P<dia>\d{1,2}), +(?P<anyo>\d{1,"
-                     r"4}) +(?P<hora>\d{1,2}):(?P<min>\d{2}) (?P<letras>AM|PM))|((?P<hora>\d{2}):(?P<min>\d{2}):("
-                     r"?P<seg>\d{2}) +(?P<dia>\d{2})/(?P<mes>\d{2})/(?P<anyo>\d{4}))$")
+p_fecha = re.compile(r"^((?P<anyo>\d{4})-(?P<mes>\d{2})-(?P<dia>\d{2}) +(?P<hora>\d{2}):(?P<min>\d{2}))|"
+                     r"((?i)(?P<mes>(j(anuary|une|uly)|february|m(arch|ay)|a(pril|ugust)|september|october|november|december)) +(?P<dia>\d{1,2}), +(?P<anyo>\d{1,4}) +(?P<hora>\d{1,2}):(?P<min>\d{2}) (?P<letras>AM|PM))|"
+                     r"((?P<hora>\d{2}):(?P<min>\d{2}):(?P<seg>\d{2}) +(?P<dia>\d{2})/(?P<mes>\d{2})/(?P<anyo>\d{4}))$")
 p_coord = re.compile(
-    r"^((?P<grados1>(\+{0,1}|-)\d{1,2}\.\d{1,}) *, *(?P<grados2>(\+{0,1}|-)\d{1,3}\.\d{1,}))|((?P<grados1>\d{1,2})º *(?P<minutos1>\d{1,2})' *(?P<segundos1>\d{1,2}\.\d{4})\" *(?P<letra1>[NS]) *, *(?P<grados2>\d{1,3})º *(?P<minutos2>\d{1,2})' *(?P<segundos2>\d{1,2}\.\d{4})\" *(?P<letra2>[EW]))|((?P<grados1>(\d{3}))(?P<minutos1>\d{2})(?P<segundos1>\d{2}.\d{4})(?P<letra1>[NS])(?P<grados2>\d{3})(?P<minutos2>\d{2})(?P<segundos2>\d{2}.\d{4})(?P<letra2>[EW]))$")
+    r"^((?P<grados1>(\+{0,1}|-)\d{1,2}\.\d{1,}) *, *(?P<grados2>(\+{0,1}|-)\d{1,3}\.\d{1,}))|"
+    r"((?P<grados1>\d{1,2})° *(?P<minutos1>\d{1,2})' *(?P<segundos1>\d{1,2}\.\d{4})\" *(?P<letra1>[NS]) *, *(?P<grados2>\d{1,3})° *(?P<minutos2>\d{1,2})' *(?P<segundos2>\d{1,2}\.\d{4})\" *(?P<letra2>[EW]))|"
+    r"((?P<grados1>(\d{3}))(?P<minutos1>\d{2})(?P<segundos1>\d{2}.\d{4})(?P<letra1>[NS])(?P<grados2>\d{3})(?P<minutos2>\d{2})(?P<segundos2>\d{2}.\d{4})(?P<letra2>[EW]))$")
+
 p_precio = re.compile(r"^\d+(\.\d+){0,1}€$")
+p_productos = re.compile(r"([a-zA-Z0-9].+)")
 p_linea = re.compile(r"^(.+);(.+);(.+);(.+);(.+);(.+)$")
 
 d_mes = {"january": "01", "february": "02", "march": "03", "april": "04", "may": "05", "june": "06", "july": "07",
          "august": "08",
          "september": "09", "october": "10", "november": "11", "december": "12"}
 
-productos = ["Tablet", "Auriculares", "Teléfono", "Ordenador", "Portátil"]
-
 meses = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
          "November", "December"]
 
-# SESIÓN 1
+
+
 def bisiesto(anyo):
     return anyo % 4 == 0 and (anyo % 400 == 0 or anyo % 100 != 0)
-
 
 def fecha_correcta(anyo, mes, dia):
     if mes == 2:
@@ -53,7 +53,6 @@ def comparar_fechas(anyo1, mes1, dia1, hora1, minuto1, segundo1, anyo2, mes2, di
     return 0
 
 
-# SESIÓN 2
 def letra_dni(dni):
     lista = 'TRWAGMYFPDXBNJZSQVHLCKE'
     numero = dni % 23
@@ -72,13 +71,11 @@ def nif_valido(nif):
     return nif[-1] == letra_dni(numero)
 
 
-# SESIÓN 6 Y 7:
 def verificar_telefono(tlf):
     m = p_tlf.fullmatch(tlf)
     if m:
         return m[0]
     return None
-
 
 def verificar_nif(nif):
     d = p_nif.fullmatch(nif)
@@ -86,23 +83,15 @@ def verificar_nif(nif):
         return d[0]
     return None
 
-
-def verificar_precio(precio):
-    p = p_precio.fullmatch(precio)
-    if p:
-        return p[0]
-    return None
-
-
 def verificar_fecha(fecha):
     f = p_fecha.fullmatch(fecha)
     if f:
         mes = f["mes"]
-        if not f["mes"].isnumeric():  # Si se trata del segundo formato -> 'May'
-            m = f["mes"].lower()  # 'May' -> 'may'
-            mes = d_mes.get(m)  # 'may' -> '05'
+        if not f["mes"].isnumeric():    # Si se trata del segundo formato -> 'May'
+            m = f["mes"].lower()        # 'May' -> 'may'
+            mes = d_mes.get(m)          # 'may' -> '05'     'd_mes' es un diccionario declarado arriba.
 
-        seg = (f["seg"] or "00")  # Si no tiene segundos (Primer formato) se establecen a 0.
+        seg = (f["seg"] or "00")        # Si no tiene segundos (Primer formato) se establecen a 0.
 
         if verificar_hora(int(f["hora"]), int(f["min"]), int(seg)) and fecha_correcta(int(f["anyo"]), int(mes),
                                                                                       int(f["dia"])):
@@ -114,7 +103,7 @@ def verificar_fecha(fecha):
                 "min": f["min"],
                 "seg": seg,
                 "letras": f["letras"],
-                "original": f[0]  # Guardamos la fecha completa para devolverla en los filtrados.
+                "original": f[0]     # Guardamos la fecha completa para devolverla en los filtrados.
             }
     return None
 
@@ -147,6 +136,17 @@ def verificar_coord(coordenadas):
             }
     return None
 
+def verificar_producto(producto):
+    prod = p_productos.fullmatch(producto)
+    if prod:
+        return prod[0]
+    return None
+
+def verificar_precio(precio):
+    p = p_precio.fullmatch(precio)
+    if p:
+        return p[0]
+    return None
 
 def coordenadas_a_grados(g, m, s, letra):
     if letra:
@@ -252,7 +252,7 @@ def mostrar_coord(diccionario, formato_coordenadas):
     elif formato_coordenadas == 2:
         if not coord["letra1"]:
             coord = grados_a_coordenadas(float(coord["grados1"]), float(coord["grados2"]))
-        return '%02dº %d\' %06.4f\" %s, %02dº %d\' %06.4f\" %s' % (
+        return '%02d° %d\' %06.4f\" %s, %02d° %d\' %06.4f\" %s' % (
         int(coord["grados1"]), int(coord["minutos1"]), float(coord["segundos1"]), coord["letra1"],
         int(coord["grados2"]), int(coord["minutos2"]), float(coord["segundos2"]), coord["letra2"])
     else:
@@ -283,10 +283,10 @@ def verificar_formato(linea):
     nif = verificar_nif(f[2].strip())
     fecha = verificar_fecha(f[3].strip())
     coordenadas = verificar_coord(f[4].strip())
-    producto = f[5].strip()
+    producto = verificar_producto(f[5].strip())
     precio = verificar_precio(f[6].strip())
 
-    if telefono is None or nif is None or fecha is None or coordenadas is None or producto not in productos or precio is None:
+    if telefono is None or nif is None or fecha is None or coordenadas is None or producto is None or precio is None:
         return None
     else:
         return {
@@ -461,6 +461,5 @@ def main():
     else:
         print('Uso: Python %s [-n|-sphone|-snif|-stime|-slocation] [argumentos]' % sys.argv[0], file=sys.stderr)
         exit(2)
-
 
 main()
