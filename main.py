@@ -9,7 +9,7 @@ p_fecha = re.compile(r"^((?P<anyo>\d{4})-(?P<mes>\d{2})-(?P<dia>\d{2}) +(?P<hora
                      r"((?i)(?P<mes>(j(anuary|une|uly)|february|m(arch|ay)|a(pril|ugust)|september|october|november|december)) +(?P<dia>\d{1,2}), +(?P<anyo>\d{1,4}) +(?P<hora>\d{1,2}):(?P<min>\d{2}) (?P<letras>AM|PM))|"
                      r"((?P<hora>\d{2}):(?P<min>\d{2}):(?P<seg>\d{2}) +(?P<dia>\d{2})/(?P<mes>\d{2})/(?P<anyo>\d{4}))$")
 p_coord = re.compile(
-    r"^((?P<grados1>(\+{0,1}|-)\d{1,2}\.\d{1,}) *, *(?P<grados2>(\+{0,1}|-)\d{1,3}\.\d{1,}))|"
+    r"^((?P<grados1>(\+{0,1}|-)\d{1,2}\.\d+) *, *(?P<grados2>(\+{0,1}|-)\d{1,3}\.\d+))|"
     r"((?P<grados1>\d{1,2})° *(?P<minutos1>\d{1,2})' *(?P<segundos1>\d{1,2}\.\d{4})\" *(?P<letra1>[NS]) *, *(?P<grados2>\d{1,3})° *(?P<minutos2>\d{1,2})' *(?P<segundos2>\d{1,2}\.\d{4})\" *(?P<letra2>[EW]))|"
     r"((?P<grados1>(\d{3}))(?P<minutos1>\d{2})(?P<segundos1>\d{2}.\d{4})(?P<letra1>[NS])(?P<grados2>\d{3})(?P<minutos2>\d{2})(?P<segundos2>\d{2}.\d{4})(?P<letra2>[EW]))$")
 
@@ -33,8 +33,7 @@ def fecha_correcta(anyo, mes, dia):
     if mes == 2:
         if bisiesto(anyo):
             return 0 < dia <= 29  # Comparaciones concadenadas. Pág : 21
-        else:
-            return 0 < dia <= 28
+        return 0 < dia <= 28
     elif mes in [4, 6, 9, 11]:  # Meses con 30 días
         return 0 < dia <= 30
     elif mes in [1, 3, 5, 7, 8, 10, 12]:  # Meses con 31 días
@@ -48,7 +47,7 @@ def verificar_hora(horas, minutos, segundos):
 def comparar_fechas(anyo1, mes1, dia1, hora1, minuto1, segundo1, anyo2, mes2, dia2, hora2, minuto2, segundo2):
     if (anyo1, mes1, dia1, hora1, minuto1, segundo1) < (anyo2, mes2, dia2, hora2, minuto2, segundo2):
         return -1
-    elif (anyo1, mes1, dia1, hora1, minuto1, segundo1) > (anyo2, mes2, dia2, hora2, minuto2, segundo2):
+    if (anyo1, mes1, dia1, hora1, minuto1, segundo1) > (anyo2, mes2, dia2, hora2, minuto2, segundo2):
         return 1
     return 0
 
@@ -88,7 +87,7 @@ def verificar_fecha(fecha):
     if f:
         mes = f["mes"]
         if not f["mes"].isnumeric():    # Si se trata del segundo formato -> 'May'
-            m = f["mes"].lower()        # 'May' -> 'may'
+            m = f["mes"].lower()        # 'May' o 'MAy' o 'MAY' -> 'may'
             mes = d_mes.get(m)          # 'may' -> '05'     'd_mes' es un diccionario declarado arriba.
 
         seg = (f["seg"] or "00")        # Si no tiene segundos (Primer formato) se establecen a 0.
@@ -97,7 +96,7 @@ def verificar_fecha(fecha):
                                                                                       int(f["dia"])):
             return {
                 "dia": f["dia"],
-                "mes": str(mes),
+                "mes": mes,
                 "año": f["anyo"],
                 "hora": f["hora"],
                 "min": f["min"],
@@ -116,21 +115,21 @@ def coordenada_valida(grados1, minutos1, segundos1, grados2, minutos2, segundos2
 def verificar_coord(coordenadas):
     c = p_coord.fullmatch(coordenadas)
     if c:
-        minutos1 = (c["minutos1"] or 0)  # En el caso de que c["minutos1"] no exista, se asignará un 0.
-        minutos2 = (c["minutos2"] or 0)
-        segundos1 = (c["segundos1"] or 0)
-        segundos2 = (c["segundos2"] or 0)
+        minutos1 = (c["minutos1"] or "0")  # En el caso de que c["minutos1"] no exista, se asignará un 0.
+        minutos2 = (c["minutos2"] or "0")
+        segundos1 = (c["segundos1"] or "0")
+        segundos2 = (c["segundos2"] or "0")
 
         if coordenada_valida(float(c["grados1"]), float(minutos1), float(segundos1),
                              float(c["grados2"]), float(minutos2), float(segundos2)):
             return {
                 "grados1": c["grados1"],
-                "minutos1": str(minutos1),
-                "segundos1": str(segundos1),
+                "minutos1": minutos1,
+                "segundos1": segundos1,
                 "letra1": c["letra1"],
                 "grados2": c["grados2"],
-                "minutos2": str(minutos2),
-                "segundos2": str(segundos2),
+                "minutos2": minutos2,
+                "segundos2": segundos2,
                 "letra2": c["letra2"],
                 "original": c[0]  # Guardamos la coordenada completa para devolverla en los filtrados sin normalizar.
             }
@@ -154,8 +153,7 @@ def coordenadas_a_grados(g, m, s, letra):
         if letra == "S" or letra == "W":
             grados *= -1
         return grados
-    else:
-        return g
+    return g
 
 
 def convertir_coordenadas(g):
@@ -279,24 +277,24 @@ def escribir_diccionarios(diccionario):
 
 def verificar_formato(linea):
     f = p_linea.fullmatch(linea)
-    telefono = verificar_telefono(f[1].strip())  # Se deben suprimir los espacios
-    nif = verificar_nif(f[2].strip())
-    fecha = verificar_fecha(f[3].strip())
-    coordenadas = verificar_coord(f[4].strip())
-    producto = verificar_producto(f[5].strip())
-    precio = verificar_precio(f[6].strip())
+    if f:
+        telefono = verificar_telefono(f[1].strip())  # Se deben suprimir los espacios
+        nif = verificar_nif(f[2].strip())
+        fecha = verificar_fecha(f[3].strip())
+        coordenadas = verificar_coord(f[4].strip())
+        producto = verificar_producto(f[5].strip())
+        precio = verificar_precio(f[6].strip())
 
-    if telefono is None or nif is None or fecha is None or coordenadas is None or producto is None or precio is None:
-        return None
-    else:
-        return {
-            "Telefono": telefono,
-            "Nif": nif,
-            "Fecha": fecha,
-            "Coordenadas": coordenadas,
-            "Producto": producto,
-            "Precio": precio
-        }
+        if telefono and nif and fecha and coordenadas and producto and precio :
+            return {
+                "Telefono": telefono,
+                "Nif": nif,
+                "Fecha": fecha,
+                "Coordenadas": coordenadas,
+                "Producto": producto,
+                "Precio": precio
+            }
+    return None
 
 
 def normalizar(fichero):
@@ -320,13 +318,13 @@ def filtrar_telefono(fichero, telefono):
         if telefono:
             telefono = telefono.replace(" ", "")
             if len(telefono) == 9:
-                telefono = "+34" + telefono
+                telefono = "+34" + str(telefono)
             for linea in archivo:
                 diccionario = verificar_formato(linea.strip())
                 if diccionario:
                     tlf = diccionario["Telefono"].replace(" ", "")
                     if len(tlf) == 9:
-                        tlf = "+34" + tlf
+                        tlf = "+34" + str(tlf)
                     if tlf == telefono:
                         escribir_diccionarios(diccionario)
         else:
