@@ -45,11 +45,17 @@ def verificar_hora(horas, minutos, segundos):
     return 0 <= horas <= 23 and 0 <= minutos <= 59 and 0 <= segundos <= 59
 
 def comparar_fechas(anyo1, mes1, dia1, hora1, minuto1, segundo1, anyo2, mes2, dia2, hora2, minuto2, segundo2):
-    if (anyo1, mes1, dia1, hora1, minuto1, segundo1) < (anyo2, mes2, dia2, hora2, minuto2, segundo2):
+    if (anyo1, mes1, dia1) < (anyo2, mes2, dia2):
         return -1
-    if (anyo1, mes1, dia1, hora1, minuto1, segundo1) > (anyo2, mes2, dia2, hora2, minuto2, segundo2):
+    elif (anyo1, mes1, dia1) > (anyo2, mes2, dia2):
         return 1
-    return 0
+    # Si las fechas son iguales, comparamos la hora
+    elif (hora1, minuto1, segundo1) < (hora2, minuto2, segundo2):
+        return -1
+    elif (hora1, minuto1, segundo1) > (hora2, minuto2, segundo2):
+        return 1
+    else:
+        return 0
 
 
 def letra_dni(dni):
