@@ -3,7 +3,7 @@ import regex as re
 import math
 
 # Expresiones regulares
-p_tlf = re.compile( r"^((\d{3}) (\d{3}) (\d{3}))| (\+(\d ?){10,15})$")
+p_tlf = re.compile( r"^((\d{3}) (\d{3}) (\d{3}))|(\+(\d ?){10,15})$")
 p_nif = re.compile(r"^([XYZ\d])(\d{7})((?![ÑIOU])[A-Z])$")
 p_fecha = re.compile(r"^((?P<anyo>\d{4})-(?P<mes>\d{2})-(?P<dia>\d{2}) +(?P<hora>\d{2}):(?P<min>\d{2}))|"
                      r"((?i)(?P<mes>(j(anuary|une|uly)|february|m(arch|ay)|a(pril|ugust)|september|october|november|december)) +(?P<dia>\d{1,2}), +(?P<anyo>\d{1,4}) +(?P<hora>\d{1,2}):(?P<min>\d{2}) +(?P<letras>AM|PM))|"
