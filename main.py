@@ -3,32 +3,31 @@ import regex as re
 import math
 
 # Expresiones regulares
-p_tlf = re.compile(r"^((\d{3}) (\d{3}) (\d{3}))|(\+\d (\d ?){9,14})|(\+\d{2} (\d ?){8,13}|\+\d{3} (\d ?){7,12})|(\+\d{11,15})$")
+p_tlf = re.compile( r"^((\d{3}) (\d{3}) (\d{3}))| (\+(\d ?){10,15})$")
 p_nif = re.compile(r"^([XYZ\d])(\d{7})((?![ÑIOU])[A-Z])$")
 p_fecha = re.compile(r"^((?P<anyo>\d{4})-(?P<mes>\d{2})-(?P<dia>\d{2}) +(?P<hora>\d{2}):(?P<min>\d{2}))|"
-                     r"((?i)(?P<mes>(j(anuary|une|uly)|february|m(arch|ay)|a(pril|ugust)|september|october|november|december)) +(?P<dia>\d{1,2}), +(?P<anyo>\d{1,4}) +(?P<hora>\d{1,2}):(?P<min>\d{2}) (?P<letras>AM|PM))|"
+                     r"((?i)(?P<mes>(j(anuary|une|uly)|february|m(arch|ay)|a(pril|ugust)|september|october|november|december)) +(?P<dia>\d{1,2}), +(?P<anyo>\d{1,4}) +(?P<hora>\d{1,2}):(?P<min>\d{2}) +(?P<letras>AM|PM))|"
                      r"((?P<hora>\d{2}):(?P<min>\d{2}):(?P<seg>\d{2}) +(?P<dia>\d{2})/(?P<mes>\d{2})/(?P<anyo>\d{4}))$")
 p_coord = re.compile(
-    r"^((?P<grados1>(\+{0,1}|-)\d{1,2}\.\d+) *, *(?P<grados2>(\+{0,1}|-)\d{1,3}\.\d+))|"
+    r"^((?P<grados1>(\+?|-)\d{1,2}\.\d+) *, *(?P<grados2>(\+{0,1}|-)\d{1,3}\.\d+))|"
     r"((?P<grados1>\d{1,2})° *(?P<minutos1>\d{1,2})' *(?P<segundos1>\d{1,2}\.\d{4})\" *(?P<letra1>[NS]) *, *(?P<grados2>\d{1,3})° *(?P<minutos2>\d{1,2})' *(?P<segundos2>\d{1,2}\.\d{4})\" *(?P<letra2>[EW]))|"
     r"((?P<grados1>(\d{3}))(?P<minutos1>\d{2})(?P<segundos1>\d{2}.\d{4})(?P<letra1>[NS])(?P<grados2>\d{3})(?P<minutos2>\d{2})(?P<segundos2>\d{2}.\d{4})(?P<letra2>[EW]))$")
+p_precio = re.compile(r"^\d+(\.\d+)?€$")
+p_productos = re.compile(r"^[^;]+$")
+p_linea = re.compile(r"^(([^;]+);){5}([^;]+)$")
 
-p_precio = re.compile(r"^\d+(\.\d+){0,1}€$")
-p_productos = re.compile(r"([a-zA-Z0-9].+)")
-p_linea = re.compile(r"^(.+);(.+);(.+);(.+);(.+);(.+)$")
-
-d_mes = {"january": "01", "february": "02", "march": "03", "april": "04", "may": "05", "june": "06", "july": "07",
-         "august": "08",
-         "september": "09", "october": "10", "november": "11", "december": "12"}
-
+# Lista de meses, una para lograr la conversión 'january' -> '1' y la otra para convertir '3' -> 'March'
+meses_minuscula = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october",
+                    "november", "december"]
 meses = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
          "November", "December"]
 
 
-
+# Comprueba si un año es bisiesto o no
 def bisiesto(anyo):
     return anyo % 4 == 0 and (anyo % 400 == 0 or anyo % 100 != 0)
 
+# Comprueba si una fecha es correcta o no, teniendo en cuenta si pertenece a un mes de 31, 30, 29 o 28 días
 def fecha_correcta(anyo, mes, dia):
     if mes == 2:
         if bisiesto(anyo):
@@ -40,30 +39,26 @@ def fecha_correcta(anyo, mes, dia):
         return 0 < dia <= 31
     return 0
 
-
+# Comprueba si la hora es correcta, es decir, si las horas, los minutos y los segundos se encuentran en los rangos establecidos
 def verificar_hora(horas, minutos, segundos):
     return 0 <= horas <= 23 and 0 <= minutos <= 59 and 0 <= segundos <= 59
 
-def comparar_fechas(anyo1, mes1, dia1, hora1, minuto1, segundo1, anyo2, mes2, dia2, hora2, minuto2, segundo2):
-    if (anyo1, mes1, dia1) < (anyo2, mes2, dia2):
-        return -1
-    elif (anyo1, mes1, dia1) > (anyo2, mes2, dia2):
-        return 1
-    # Si las fechas son iguales, comparamos la hora
-    elif (hora1, minuto1, segundo1) < (hora2, minuto2, segundo2):
-        return -1
-    elif (hora1, minuto1, segundo1) > (hora2, minuto2, segundo2):
-        return 1
-    else:
-        return 0
+# Compara dos fechas, devuelve -1 si la primera es la más antigua, 1 si lo es la segunda y 0 si son iguales
+def comparar_fechas(fecha1, fecha2):
+    for elemento in ["año", "mes", "dia", "hora", "min", "seg"]:
+        if fecha1[elemento] < fecha2[elemento]:
+            return -1
+        if fecha1[elemento] > fecha2[elemento]:
+            return 1
+    return 0
 
-
+# Dado el número de un DNI, calcula la letra que le corresponde
 def letra_dni(dni):
     lista = 'TRWAGMYFPDXBNJZSQVHLCKE'
     numero = dni % 23
     return "%s" % lista[numero]
 
-
+# Comprueba si un NIF es válido o no, es decir, si su letra es la que le corresponde
 def nif_valido(nif):
     if nif[0] == 'X':
         numero = int("0" + nif[1:8])
@@ -75,53 +70,58 @@ def nif_valido(nif):
         numero = int(nif[0:8])
     return nif[-1] == letra_dni(numero)
 
-
+# Verifica el formato de un teléfono y lo devuelve en forma de cadena (None si es inválido)
 def verificar_telefono(tlf):
     m = p_tlf.fullmatch(tlf)
     if m:
         return m[0]
     return None
 
+# Verifica el formato de un NIF, comprueba si es correcto y lo devuelve en forma de cadena (None si es inválido o incorrecto)
 def verificar_nif(nif):
     d = p_nif.fullmatch(nif)
     if d and nif_valido(nif):
         return d[0]
     return None
 
+# Verifica el formato de una fecha, comprueba si es correcta, realiza las conversiones que sean necesarias ('August' -> 8)
+# y la devuelve en forma de diccionario formado por diferentes campos (None si es inválida o incorrecta)
 def verificar_fecha(fecha):
     f = p_fecha.fullmatch(fecha)
     if f:
         mes = f["mes"]
-        if not f["mes"].isnumeric():    # Si se trata del segundo formato -> 'May'
-            m = f["mes"].lower()        # 'May' o 'MAy' o 'MAY' -> 'may'
-            mes = d_mes.get(m)          # 'may' -> '05'     'd_mes' es un diccionario declarado arriba.
+        if not f["mes"].isnumeric():                    # Si se trata del segundo formato -> 'May'
+            m = f["mes"].lower()                        # 'May' o 'MAy' o 'MAY' -> 'may'
+            mes = meses_minuscula.index(m) + 1          # 'may' -> 5     'meses_minuscula' es una lista declarada arriba
 
-        seg = (f["seg"] or "00")        # Si no tiene segundos (Primer formato) se establecen a 0.
+        seg = int(f["seg"] or 0)                        # Si no tiene segundos (Primer formato) se establecen a 0.
 
         if verificar_hora(int(f["hora"]), int(f["min"]), int(seg)) and fecha_correcta(int(f["anyo"]), int(mes),
                                                                                       int(f["dia"])):
             return {
-                "dia": f["dia"],
-                "mes": mes,
-                "año": f["anyo"],
-                "hora": f["hora"],
-                "min": f["min"],
-                "seg": seg,
+                "dia": int(f["dia"]),
+                "mes": int(mes),
+                "año": int(f["anyo"]),
+                "hora": int(f["hora"]),
+                "min": int(f["min"]),
+                "seg": int(seg),
                 "letras": f["letras"],
                 "original": f[0]     # Guardamos la fecha completa para devolverla en los filtrados.
             }
     return None
 
-
+# Comprueba si una coordenada es válida o no, de la misma manera que se hace con las horas
 def coordenada_valida(grados1, minutos1, segundos1, grados2, minutos2, segundos2):
     return 0 <= abs(grados1) < 90 and 0 <= minutos1 < 60 and 0 <= segundos1 < 60 and 0 <= abs(
         grados2) < 180 and 0 <= minutos2 < 60 and 0 <= segundos2 < 60
 
-
+# Verifica el formato de una coordenada, comprueba si es correcta, inicializa los campos a 0 si no existen y la devuelve
+# en forma de diccionario formado por diferentes campos (None si es inválida o incorrecta)
 def verificar_coord(coordenadas):
     c = p_coord.fullmatch(coordenadas)
     if c:
-        minutos1 = (c["minutos1"] or "0")  # En el caso de que c["minutos1"] no exista, se asignará un 0.
+        # En el caso de que el campo de minutos o segundos no exista, se asignará un 0.
+        minutos1 = (c["minutos1"] or "0")
         minutos2 = (c["minutos2"] or "0")
         segundos1 = (c["segundos1"] or "0")
         segundos2 = (c["segundos2"] or "0")
@@ -141,18 +141,21 @@ def verificar_coord(coordenadas):
             }
     return None
 
+# Verifica el formato de un producto y lo devuelve en forma de cadena (None si es inválido)
 def verificar_producto(producto):
     prod = p_productos.fullmatch(producto)
     if prod:
         return prod[0]
     return None
 
+# Verifica el formato de un precio y lo devuelve en forma de cadena (None si es inválido)
 def verificar_precio(precio):
     p = p_precio.fullmatch(precio)
     if p:
         return p[0]
     return None
 
+# Convierte grados, minutos y segundos a grados
 def coordenadas_a_grados(g, m, s, letra):
     if letra:
         grados = g + m / 60 + s / 3600
@@ -161,7 +164,7 @@ def coordenadas_a_grados(g, m, s, letra):
         return grados
     return g
 
-
+# Convierte unos grados dados a grados, minutos y segundos, y los devuelve en forma de diccionario
 def convertir_coordenadas(g):
     grados = int(abs(g))
     grados_a_minutos = (abs(g) - grados) * 60
@@ -174,16 +177,16 @@ def convertir_coordenadas(g):
         "segundos": segundos
     }
 
-
+# Convierte una coordenada en formato decimal a grados, minutos y segundos, y la devuelve en forma de diccionario
 def grados_a_coordenadas(g1, g2):
     latitud_diccionario = convertir_coordenadas(g1)
     longitud_diccionario = convertir_coordenadas(g2)
-    letra1 = "S"
-    letra2 = "W"
-    if g1 >= 0:
-        letra1 = "N"
-    if g2 >= 0:
-        letra2 = "E"
+    letra1 = "N"
+    letra2 = "E"
+    if g1 < 0:
+        letra1 = "S"
+    if g2 < 0:
+        letra2 = "W"
 
     return {
         "grados1": latitud_diccionario.get("grados"),
@@ -196,7 +199,7 @@ def grados_a_coordenadas(g1, g2):
         "letra2": letra2
     }
 
-
+# Convierte una hora dada en el sistema horario de 12 horas a su equivalente en el sistema horario de 24 horas
 def convertir_24h(hora, letras):
     hora = int(hora)
     if letras.lower() == "am":
@@ -207,15 +210,8 @@ def convertir_24h(hora, letras):
             hora += 12
     return hora
 
-
-def mostrar_telefono(diccionario):
-    return diccionario["Telefono"]
-
-
-def mostrar_nif(diccionario):
-    return diccionario["Nif"]
-
-
+# Muestra por consola el campo de la fecha de un diccionario dado en el formato que le especifiquemos
+# (1 = YYYY-MM-DD HH:MM ; 2 = Month D, Y HH:MM AM/PM ; 3 = HH:MM:SS DD/MM/YYYY)
 def mostrar_fecha(diccionario, formato_fecha):
     fecha = diccionario["Fecha"]
     if formato_fecha == 1:
@@ -244,7 +240,8 @@ def mostrar_fecha(diccionario, formato_fecha):
         return ('%02d:%s:%02s %02d/%02d/%04s' % (
         int(fecha["hora"]), fecha["min"], fecha["seg"], int(fecha["dia"]), int(fecha["mes"]), fecha["año"]))
 
-
+# Muestra por consola el campo de las coordenadas de un diccionario dado en el formato que le especifiquemos
+# (1 = Decimal ; 2 = Sexagesimal ; 3 = GPS)
 def mostrar_coord(diccionario, formato_coordenadas):
     coord = diccionario["Coordenadas"]
     if formato_coordenadas == 1:
@@ -266,25 +263,25 @@ def mostrar_coord(diccionario, formato_coordenadas):
         int(coord["grados1"]), int(coord["minutos1"]), float(coord["segundos1"]), str(coord["letra1"]),
         int(coord["grados2"]), int(coord["minutos2"]), float(coord["segundos2"]), str(coord["letra2"]))
 
-
-# Para la función de normalizar
+# Muestra por la consola los campos de un diccionario normalizados y separados por punto y coma
 def escribir_diccionarios_normalizar(diccionario, formato_fecha, formato_coordenadas):
     print('%s;%s;%s;%s;%s;%s' % (
-    mostrar_telefono(diccionario), mostrar_nif(diccionario), mostrar_fecha(diccionario, formato_fecha),
+    diccionario["Telefono"], diccionario["Nif"], mostrar_fecha(diccionario, formato_fecha),
     mostrar_coord(diccionario, formato_coordenadas), diccionario["Producto"], diccionario["Precio"]))
 
-
-# Para el resto de funciones sin normalizar
+# Muestra por la consola los campos de un diccionario (manteniendo el formato) y separados por punto y coma
 def escribir_diccionarios(diccionario):
     print('%s;%s;%s;%s;%s;%s' % (
-    mostrar_telefono(diccionario), mostrar_nif(diccionario), diccionario["Fecha"]["original"],
+    diccionario["Telefono"], diccionario["Nif"], diccionario["Fecha"]["original"],
     diccionario["Coordenadas"]["original"], diccionario["Producto"], diccionario["Precio"]))
 
-
+# Verifica el formato de una línea de una lista de compras y la devuelve en forma de diccionario con los diferentes
+# campos que la forman (None si es inválida)
 def verificar_formato(linea):
     f = p_linea.fullmatch(linea)
     if f:
-        telefono = verificar_telefono(f[1].strip())  # Se deben suprimir los espacios
+        # Se deben comprobar los formatos y suprimir los espacios que pudieran existir entre la cadena y el separador de campo
+        telefono = verificar_telefono(f[1].strip())
         nif = verificar_nif(f[2].strip())
         fecha = verificar_fecha(f[3].strip())
         coordenadas = verificar_coord(f[4].strip())
@@ -302,29 +299,31 @@ def verificar_formato(linea):
             }
     return None
 
-
+# Invocada con la opción '-n', normaliza un registro de compras (fechas en el segundo formato y las coordenadas en el tercero)
+# Muestra un mensaje de error si no se puede abrir el fichero
 def normalizar(fichero):
     try:
         archivo = open(fichero, 'r+', encoding="utf8")  # Para que detecte el símbolo del euro
         for linea in archivo:
             diccionario = verificar_formato(linea.strip())
             if diccionario:
-                escribir_diccionarios_normalizar(diccionario, 1, 3)  # Las fechas se normalizan
+                escribir_diccionarios_normalizar(diccionario, 2, 3)  # Las fechas y coordenadas se normalizan
         archivo.close()
     except FileNotFoundError:
         print("ERROR: El archivo no se ha encontrado")
         exit(1)
 
-
+# Invocada con la opción '-sphone', filtra un registro de compras y muestra solo aquellas cuyo número de teléfono
+# coincida con el especificado. Muestra un mensaje de error si no se puede abrir el fichero o si el formato del
+# teléfono es incorrecto
 def filtrar_telefono(fichero, telefono):
     try:
         archivo = open(fichero, 'r+', encoding="utf8")
         telefono = verificar_telefono(telefono)
-
         if telefono:
             telefono = telefono.replace(" ", "")
             if len(telefono) == 9:
-                telefono = "+34" + str(telefono)
+                telefono = "+34" + str(telefono)  # Si es un número español se añade el prefijo '+34'
             for linea in archivo:
                 diccionario = verificar_formato(linea.strip())
                 if diccionario:
@@ -341,7 +340,8 @@ def filtrar_telefono(fichero, telefono):
         print("ERROR: El archivo no se ha encontrado")
         exit(1)
 
-
+# Invocada con la opción '-snif', filtra un registro de compras y muestra solo aquellas cuyo NIF coincida con el
+# especificado. Muestra un mensaje de error si no se puede abrir el fichero o si el formato del NIF es incorrecto
 def filtrar_nif(fichero, nif):
     try:
         archivo = open(fichero, 'r+', encoding='utf8')
@@ -359,7 +359,9 @@ def filtrar_nif(fichero, nif):
         print("ERROR: El archivo no se ha encontrado")
         exit(1)
 
-
+# Invocada con la opción '-stime', filtra un registro de compras y muestra solo aquellas cuya fecha se entra las dos
+# especificadas en la entrada. Muestra un mensaje de error si no se puede abrir el fichero o si el formato de las
+# fechas es incorrecto
 def filtrar_fechas(fichero, fecha1, fecha2):
     try:
         archivo = open(fichero, 'r+', encoding='utf8')
@@ -370,15 +372,7 @@ def filtrar_fechas(fichero, fecha1, fecha2):
                 diccionario = verificar_formato(linea.strip())
                 if diccionario:
                     fecha = diccionario["Fecha"]
-                    if comparar_fechas(inicio["año"], inicio["mes"], inicio["dia"], inicio["hora"], inicio["min"],
-                                       inicio["seg"], fecha["año"], fecha["mes"], fecha["dia"], fecha["hora"],
-                                       fecha["min"],
-                                       fecha["seg"]) == -1 and comparar_fechas(fecha["año"], fecha["mes"], fecha["dia"],
-                                                                               fecha["hora"], fecha["min"],
-                                                                               fecha["seg"], fin["año"], fin["mes"],
-                                                                               fin["dia"],
-                                                                               fin["hora"], fin["min"],
-                                                                               fin["seg"]) == -1:
+                    if comparar_fechas(inicio, fecha) < 1 and comparar_fechas(fecha, fin) < 1:
                         escribir_diccionarios(diccionario)
         else:
             print('Uso: Python %s -stime <desde> <hasta> <fichero>' % sys.argv[0], file=sys.stderr)
@@ -388,11 +382,11 @@ def filtrar_fechas(fichero, fecha1, fecha2):
         print("ERROR: El archivo no se ha encontrado")
         exit(1)
 
-
+# Define la función del semiverseno para calcular la distancia entre dos coordenadas
 def semiversin(valor):
     return math.pow(math.sin(valor / 2), 2)
 
-
+# Calcula la distancia entre dos coordenadas y devuelve un real que representa los kilómetros que hay entre ellas
 def distancia_coordenadas(coord1, coord2):
     lat1 = math.radians(
         coordenadas_a_grados(float(coord1["grados1"]), float(coord1["minutos1"]), float(coord1["segundos1"]),
@@ -410,7 +404,9 @@ def distancia_coordenadas(coord1, coord2):
     h = semiversin(lat1 - lat2) + math.cos(lat1) * math.cos(lat2) * semiversin(math.fabs(long1 - long2))
     return 2 * r * math.asin(math.sqrt(h))
 
-
+# Invocada con la opción '-slocation', filtra un registro de compras y muestra solo aquellas cuya coordenada se encuentre
+# a una distancia igual o menor a la dada de una coordenada determinada. Muestra un mensaje de error si no se puede abrir
+# el fichero o si el formato del NIF es incorrecto
 def filtrar_coordenadas(fichero, coordenada, distancia):
     try:
         archivo = open(fichero, 'r', encoding='utf8')
@@ -420,7 +416,7 @@ def filtrar_coordenadas(fichero, coordenada, distancia):
                 diccionario = verificar_formato(linea[:-1])
                 if diccionario:
                     coord2 = diccionario["Coordenadas"]
-                    if distancia_coordenadas(coord1, coord2) < float(distancia):
+                    if distancia_coordenadas(coord1, coord2) <= float(distancia):
                         escribir_diccionarios(diccionario)
         else:
             print('Uso: Python %s -slocation <desde> <hasta> <fichero>' % sys.argv[0], file=sys.stderr)
@@ -430,7 +426,8 @@ def filtrar_coordenadas(fichero, coordenada, distancia):
         print("ERROR: El archivo no se ha encontrado")
         exit(1)
 
-
+# Define el comportamiento del programa principal (interpretar las órdenes que el usuario le introduzca) y muestra
+# mensajes de error si el formado de la órden introducida es incorrecto
 def main():
     if sys.argv[1] == "-n":
         if len(sys.argv) == 3:
@@ -466,4 +463,5 @@ def main():
         print('Uso: Python %s [-n|-sphone|-snif|-stime|-slocation] [argumentos]' % sys.argv[0], file=sys.stderr)
         exit(2)
 
+# Ejecuta el programa principal
 main()
